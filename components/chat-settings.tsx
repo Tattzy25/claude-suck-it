@@ -1,33 +1,11 @@
 "use client"
 
 import { createContext, useContext, useState, type ReactNode } from "react"
-import { ActivityIcon } from "@/components/ui/activity"
-import { AtSignIcon } from "@/components/ui/at-sign"
-import { BotMessageSquareIcon } from "@/components/ui/bot-message-square"
-import { MessageCircleDashedIcon } from "@/components/ui/message-circle-dashed"
-import { MessageCircleXIcon } from "@/components/ui/message-circle-x"
-import { MessageSquareIcon } from "@/components/ui/message-square"
-import { MessageSquareXIcon } from "@/components/ui/message-square-x"
-import { SendIcon } from "@/components/ui/send"
-
-export const BUBBLE_ICONS = {
-  "bot-message-square": BotMessageSquareIcon,
-  "message-circle-dashed": MessageCircleDashedIcon,
-  "message-square-x": MessageSquareXIcon,
-  "message-square": MessageSquareIcon,
-  send: SendIcon,
-  activity: ActivityIcon,
-  "at-sign": AtSignIcon,
-  "message-circle-x": MessageCircleXIcon,
-}
-
-export type BubbleIconKey = keyof typeof BUBBLE_ICONS
 
 export type ChatSettingsState = {
   bubbleSize: number
   panelWidth: number
   panelHeight: number
-  bubbleIcon: BubbleIconKey
   darkMode: boolean
 }
 
@@ -35,7 +13,6 @@ export const DEFAULT_CHAT_SETTINGS: ChatSettingsState = {
   bubbleSize: 56,
   panelWidth: 384,
   panelHeight: 560,
-  bubbleIcon: "bot-message-square",
   darkMode: false,
 }
 

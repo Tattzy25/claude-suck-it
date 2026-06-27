@@ -1,7 +1,6 @@
 "use client"
 
-import { BUBBLE_ICONS, useChatSettings, type BubbleIconKey } from "@/components/chat-settings"
-import { Button } from "@/components/ui/button"
+import { useChatSettings } from "@/components/chat-settings"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
 
@@ -75,28 +74,6 @@ export function AppearanceTab() {
         max={720}
         onChange={(panelHeight) => setSettings({ panelHeight })}
       />
-      <div className="grid gap-2">
-        <span className="text-sm">Bubble icon</span>
-        <div className="grid grid-cols-4 gap-3">
-          {(Object.keys(BUBBLE_ICONS) as BubbleIconKey[]).map((key) => {
-            const Icon = BUBBLE_ICONS[key]
-            const isActive = settings.bubbleIcon === key
-            return (
-              <Button
-                key={key}
-                type="button"
-                variant={isActive ? "default" : "outline"}
-                aria-label={key}
-                aria-pressed={isActive}
-                onClick={() => setSettings({ bubbleIcon: key })}
-                className="size-12 rounded-xl"
-              >
-                <Icon size={20} />
-              </Button>
-            )
-          })}
-        </div>
-      </div>
     </div>
   )
 }
