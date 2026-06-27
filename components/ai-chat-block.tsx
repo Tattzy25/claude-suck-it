@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { RiSparkling2Fill } from "@remixicon/react"
 import {
   ArrowUpIcon,
+  FileIcon,
   GlobeIcon,
   ImageIcon,
   MoonIcon,
@@ -14,6 +15,16 @@ import {
   XIcon,
 } from "lucide-react"
 
+import {
+  Attachment,
+  AttachmentAction,
+  AttachmentActions,
+  AttachmentContent,
+  AttachmentDescription,
+  AttachmentGroup,
+  AttachmentMedia,
+  AttachmentTitle,
+} from "@/components/ui/attachment"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
 import { Button } from "@/components/ui/button"
@@ -57,6 +68,11 @@ interface ChatMessage {
   content: string
 }
 
+interface ComposerAttachment {
+  id: number
+  file: File
+}
+
 const initialMessages: ChatMessage[] = [
   {
     id: 1,
@@ -90,9 +106,12 @@ export default function AiChatBlock() {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [draft, setDraft] = useState("")
   const [isTyping, setIsTyping] = useState(false)
+  const [attachments, setAttachments] = useState<ComposerAttachment[]>([])
   const replyIndex = useRef(0)
   const nextId = useRef(initialMessages.length + 1)
+  const nextAttachmentId = useRef(1)
   const replyTimers = useRef<ReturnType<typeof setTimeout>[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const timers = replyTimers.current
@@ -101,15 +120,16 @@ export default function AiChatBlock() {
 
   function send(text: string) {
     const trimmed = text.trim()
-    if (!trimmed || isTyping) return
+    if (isTyping || (!trimmed && attachments.length === 0)) return
 
     const userMessage: ChatMessage = {
       id: nextId.current++,
       role: "user",
-      content: trimmed,
+      content: trimmed || "Sent attachment",
     }
     setMessages((prev) => [...prev, userMessage])
     setDraft("")
+    setAttachments([])
     setIsTyping(true)
 
     const reply = cannedReplies[replyIndex.current % cannedReplies.length]
@@ -135,6 +155,32 @@ export default function AiChatBlock() {
       event.preventDefault()
       send(draft)
     }
+  }
+
+  function formatBytes(bytes: number) {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
+  }
+
+  function handleFilesSelected(event: React.ChangeEvent<HTMLInputElement>) {
+    const selectedFiles = Array.from(event.target.files ?? [])
+    if (selectedFiles.length === 0) return
+
+    setAttachments((prev) => [
+      ...prev,
+      ...selectedFiles.map((file) => ({
+        id: nextAttachmentId.current++,
+        file,
+      })),
+    ])
+
+    event.target.value = ""
+  }
+
+  function removeAttachment(id: number) {
+    setAttachments((prev) => prev.filter((item) => item.id !== id))
   }
 
   return (
@@ -221,7 +267,43 @@ export default function AiChatBlock() {
               </CardContent>
 
               <CardFooter className="flex flex-col gap-2 px-3 py-3 sm:gap-3 sm:px-4 sm:py-3.5 md:px-5 md:py-4">
-                <form onSubmit={handleSubmit} className="w-full">
+                <form onSubmit={handleSubmit} className="w-full space-y-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={handleFilesSelected}
+                    aria-label="Attach files"
+                  />
+
+                  {attachments.length > 0 && (
+                    <AttachmentGroup className="w-full">
+                      {attachments.map((item) => (
+                        <Attachment key={item.id} size="sm" className="w-64">
+                          <AttachmentMedia>
+                            <FileIcon />
+                          </AttachmentMedia>
+                          <AttachmentContent>
+                            <AttachmentTitle>{item.file.name}</AttachmentTitle>
+                            <AttachmentDescription>
+                              {item.file.type || "File"} · {formatBytes(item.file.size)}
+                            </AttachmentDescription>
+                          </AttachmentContent>
+                          <AttachmentActions>
+                            <AttachmentAction
+                              type="button"
+                              aria-label={`Remove ${item.file.name}`}
+                              onClick={() => removeAttachment(item.id)}
+                            >
+                              <XIcon />
+                            </AttachmentAction>
+                          </AttachmentActions>
+                        </Attachment>
+                      ))}
+                    </AttachmentGroup>
+                  )}
+
                   <InputGroup className="has-disabled:bg-transparent has-disabled:opacity-100 dark:has-disabled:bg-transparent">
                     <InputGroupAddon align="inline-start">
                       <DropdownMenu>
@@ -240,7 +322,9 @@ export default function AiChatBlock() {
                           side="top"
                           className="w-40 sm:w-44"
                         >
-                          <DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => fileInputRef.current?.click()}
+                          >
                             <PaperclipIcon />
                             Add Photos & Files
                           </DropdownMenuItem>
@@ -284,8 +368,7 @@ export default function AiChatBlock() {
                         type="submit"
                         variant="default"
                         size="icon-sm"
-                        disabled={!draft.trim() || isTyping}
-                        className="ml-auto"
+                        className="ml-auto disabled:opacity-100"
                         aria-label="Send message"
                       >
                         <ArrowUpIcon />
