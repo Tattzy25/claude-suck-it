@@ -138,10 +138,10 @@ export default function AiChatBlock() {
   }
 
   return (
-    <section className="flex min-h-svh w-full items-center justify-center bg-muted/30 px-6 py-16 text-foreground">
+    <section className="flex min-h-svh w-full items-center justify-center bg-muted/30 px-2 py-3 text-foreground sm:px-4 sm:py-6 md:px-6 md:py-10 lg:py-16">
       <MessageScrollerProvider autoScroll defaultScrollPosition="end">
-        <Card className="flex h-[80vh] max-h-[640px] w-full max-w-2xl flex-col overflow-hidden border border-border shadow-sm">
-          <CardHeader className="px-5 py-4">
+        <Card className="flex h-[100svh] max-h-[100svh] w-full max-w-full flex-col overflow-hidden border border-border shadow-sm sm:h-[90svh] sm:max-h-[90svh] sm:max-w-2xl md:h-[85svh] md:max-h-[720px] lg:h-[80vh] lg:max-h-[760px]">
+          <CardHeader className="px-3 py-3 sm:px-4 sm:py-3.5 md:px-5 md:py-4">
             <div className="flex items-center gap-3">
               <span className="flex size-9 shrink-0 items-center justify-center bg-primary text-primary-foreground">
                 <RiSparkling2Fill className="size-5" aria-hidden="true" />
@@ -163,7 +163,7 @@ export default function AiChatBlock() {
           <CardContent className="min-h-0 flex-1 overflow-hidden p-0">
             <MessageScroller className="size-full">
               <MessageScrollerViewport>
-                <MessageScrollerContent className="gap-5 px-5 py-5">
+                <MessageScrollerContent className="gap-3 px-3 py-3 sm:gap-4 sm:px-4 sm:py-4 md:gap-5 md:px-5 md:py-5">
                   {messages.map((msg) => (
                     <MessageScrollerItem
                       key={msg.id}
@@ -172,7 +172,7 @@ export default function AiChatBlock() {
                     >
                       <Message align={msg.role === "user" ? "end" : "start"}>
                         <MessageAvatar>
-                          <Avatar className="size-8 border border-border">
+                          <Avatar className="size-7 border border-border sm:size-8">
                             {msg.role === "user" ? (
                               <>
                                 <AvatarImage
@@ -198,7 +198,7 @@ export default function AiChatBlock() {
                           <Bubble
                             variant={msg.role === "user" ? "default" : "muted"}
                           >
-                            <BubbleContent className="text-sm whitespace-pre-line">
+                            <BubbleContent className="text-xs whitespace-pre-line sm:text-sm">
                               {msg.content}
                             </BubbleContent>
                           </Bubble>
@@ -220,7 +220,7 @@ export default function AiChatBlock() {
             </MessageScroller>
           </CardContent>
 
-          <CardFooter className="flex flex-col gap-3 px-5 py-4">
+          <CardFooter className="flex flex-col gap-2 px-3 py-3 sm:gap-3 sm:px-4 sm:py-3.5 md:px-5 md:py-4">
             <form onSubmit={handleSubmit} className="w-full">
               <InputGroup>
                 <Textarea
@@ -230,7 +230,7 @@ export default function AiChatBlock() {
                   rows={1}
                   placeholder="Message Acme Copilot…"
                   aria-label="Message Acme Copilot"
-                  className="max-h-28 min-h-14 resize-none border-0 bg-transparent px-3 py-2.5 text-sm shadow-none focus-visible:ring-0"
+                  className="max-h-28 min-h-12 resize-none border-0 bg-transparent px-2.5 py-2 text-xs shadow-none focus-visible:ring-0 sm:min-h-14 sm:px-3 sm:py-2.5 sm:text-sm"
                 />
                 <InputGroupAddon align="block-end" className="pt-1">
                   <DropdownMenu>
@@ -247,7 +247,7 @@ export default function AiChatBlock() {
                     <DropdownMenuContent
                       align="start"
                       side="top"
-                      className="w-44"
+                      className="w-40 sm:w-44"
                     >
                       <DropdownMenuItem>
                         <PaperclipIcon />
