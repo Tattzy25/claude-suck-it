@@ -1,13 +1,32 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { RiSendPlane2Fill, RiSparkling2Fill } from "@remixicon/react"
+import { RiSparkling2Fill } from "@remixicon/react"
+import {
+  ArrowUpIcon,
+  GlobeIcon,
+  ImageIcon,
+  PaperclipIcon,
+  PlusIcon,
+  TelescopeIcon,
+} from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Bubble, BubbleContent } from "@/components/ui/bubble"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
-import { Kbd, KbdGroup } from "@/components/ui/kbd"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+} from "@/components/ui/input-group"
 import { Marker, MarkerContent } from "@/components/ui/marker"
 import {
   Message,
@@ -202,58 +221,66 @@ export default function AiChatBlock() {
           </CardContent>
 
           <CardFooter className="flex flex-col gap-3 px-5 py-4">
-            <div className="flex w-full flex-wrap gap-2">
-              {suggestions.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => send(s)}
-                  disabled={isTyping}
-                  className={cn(
-                    "border border-border bg-background px-2.5 py-1 text-xs text-muted-foreground transition-colors",
-                    "hover:bg-muted hover:text-foreground",
-                    "disabled:cursor-not-allowed disabled:opacity-50"
-                  )}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-
-            <form onSubmit={handleSubmit} className="flex w-full items-end gap-2">
-              <Textarea
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={handleKeyDown}
-                rows={1}
-                placeholder="Message Acme Copilot…"
-                aria-label="Message Acme Copilot"
-                className="max-h-32 min-h-10 flex-1 resize-none text-sm"
-              />
-              <Button
-                type="submit"
-                size="icon"
-                disabled={!draft.trim() || isTyping}
-                className="size-10 shrink-0"
-                aria-label="Send message"
-              >
-                <RiSendPlane2Fill className="size-4" aria-hidden="true" />
-              </Button>
+            <form onSubmit={handleSubmit} className="w-full">
+              <InputGroup>
+                <Textarea
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  rows={1}
+                  placeholder="Message Acme Copilot…"
+                  aria-label="Message Acme Copilot"
+                  className="max-h-28 min-h-14 resize-none border-0 bg-transparent px-3 py-2.5 text-sm shadow-none focus-visible:ring-0"
+                />
+                <InputGroupAddon align="block-end" className="pt-1">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <InputGroupButton
+                        aria-label="Add files"
+                        type="button"
+                        size="icon-sm"
+                        variant="outline"
+                      >
+                        <PlusIcon />
+                      </InputGroupButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="start"
+                      side="top"
+                      className="w-44"
+                    >
+                      <DropdownMenuItem>
+                        <PaperclipIcon />
+                        Add Photos & Files
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem>
+                        <ImageIcon />
+                        Create Image
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <TelescopeIcon />
+                        Deep Research
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <GlobeIcon />
+                        Web Search
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <InputGroupButton
+                    type="submit"
+                    variant="default"
+                    size="icon-sm"
+                    disabled={!draft.trim() || isTyping}
+                    className="ml-auto"
+                    aria-label="Send message"
+                  >
+                    <ArrowUpIcon />
+                  </InputGroupButton>
+                </InputGroupAddon>
+              </InputGroup>
             </form>
-
-            <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <Kbd>Enter</Kbd>
-                Send
-              </span>
-              <span className="flex items-center gap-1.5">
-                <KbdGroup>
-                  <Kbd>Shift</Kbd>
-                  <Kbd>Enter</Kbd>
-                </KbdGroup>
-                New Line
-              </span>
-            </div>
           </CardFooter>
         </Card>
       </MessageScrollerProvider>

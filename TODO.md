@@ -1,0 +1,7 @@
+- [ ] Update `components/ai-chat-block.tsx`:
+  - [ ] Hide the literal helper texts: "Enter Send" and "Shift Enter New Line" (UI only, keep keyboard logic unchanged)
+  - [ ] Restyle the message input area to match the screenshot style:
+    - [ ] Rounded composer bar style
+    - [ ] Add left-side `+` action button inside composer area
+    - [ ] Keep send action on right side
+- [ ] Verify TypeScript/lint health after edits
