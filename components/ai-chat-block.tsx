@@ -11,6 +11,7 @@ import {
   PlusIcon,
   SunIcon,
   TelescopeIcon,
+  XIcon,
 } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -44,7 +45,7 @@ import {
   MessageScrollerViewport,
 } from "@/components/ui/message-scroller"
 import { Separator } from "@/components/ui/separator"
-import { Textarea } from "@/components/ui/textarea"
+import TextareaAutosize from "react-textarea-autosize"
 import { cn } from "@/lib/utils"
 import { useTheme } from "next-themes"
 
@@ -83,14 +84,9 @@ const cannedReplies: string[] = [
   "Here's a starting outline with five sections and suggested owners. Let me know which part you'd like me to expand first.",
 ]
 
-const suggestions: string[] = [
-  "Summarise This Week",
-  "Draft a Launch Email",
-  "Explain Churn Rate",
-]
-
 export default function AiChatBlock() {
   const { setTheme } = useTheme()
+  const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [draft, setDraft] = useState("")
   const [isTyping, setIsTyping] = useState(false)
@@ -142,157 +138,182 @@ export default function AiChatBlock() {
   }
 
   return (
-    <section className="flex min-h-svh w-full items-center justify-center bg-muted/30 px-2 py-3 text-foreground sm:px-4 sm:py-6 md:px-6 md:py-10 lg:py-16">
+    <section className="pointer-events-none fixed right-3 bottom-3 z-50 sm:right-4 sm:bottom-4 md:right-6 md:bottom-6">
       <MessageScrollerProvider autoScroll defaultScrollPosition="end">
-        <Card className="flex h-[100svh] max-h-[100svh] w-full max-w-full flex-col gap-0 overflow-hidden border border-border px-0 pt-[10px] pb-0 shadow-sm sm:h-[90svh] sm:max-h-[90svh] sm:max-w-2xl md:h-[85svh] md:max-h-[720px] lg:h-[80vh] lg:max-h-[760px]">
-          <CardHeader className="px-3 pt-[0.6rem] pb-0 sm:px-4 sm:pt-[0.7rem] sm:pb-0 md:px-5 md:pt-[0.8rem] md:pb-0">
-            <div className="flex items-center gap-3 leading-none -translate-y-[5px]">
-              <span className="flex size-7 shrink-0 items-center justify-center overflow-visible pb-[1px] bg-primary text-primary-foreground">
-                <RiSparkling2Fill className="size-3.5 translate-y-[0.5px]" aria-hidden="true" />
-              </span>
-              <span className="font-[var(--font-orbitron)] text-[16px] leading-none font-semibold tracking-tight">
-                Acme Copilot
-              </span>
-              <span className="ml-auto flex items-center gap-1 font-[var(--font-orbitron)] text-[16px] leading-none text-muted-foreground">
-                <span className="inline-block size-1.5 rounded-full bg-primary" />
-                {isTyping ? "Typing…" : "Online"}
-              </span>
-            </div>
-          </CardHeader>
+        <div className="flex flex-col items-end gap-3">
+          {isOpen && (
+            <Card className="pointer-events-auto flex h-[70svh] max-h-[760px] w-[calc(100vw-1.5rem)] max-w-[420px] flex-col gap-0 overflow-hidden border border-border px-0 pt-[10px] pb-0 shadow-xl sm:h-[75svh] sm:w-[380px]">
+              <CardHeader className="px-3 pt-[0.6rem] pb-0 sm:px-4 sm:pt-[0.7rem] sm:pb-0 md:px-5 md:pt-[0.8rem] md:pb-0">
+                <div className="flex items-center gap-3 leading-none -translate-y-[5px]">
+                  <span className="flex size-7 shrink-0 items-center justify-center overflow-visible pb-[1px] bg-primary text-primary-foreground">
+                    <RiSparkling2Fill className="size-3.5 translate-y-[0.5px]" aria-hidden="true" />
+                  </span>
+                  <span className="font-[var(--font-orbitron)] text-[16px] leading-none font-semibold tracking-tight">
+                    Acme Copilot
+                  </span>
+                  <span className="ml-auto flex items-center gap-1 font-[var(--font-orbitron)] text-[14px] leading-none text-muted-foreground">
+                    <span className="inline-block size-1.5 rounded-full bg-primary" />
+                    {isTyping ? "Typing…" : "Online"}
+                  </span>
+                </div>
+              </CardHeader>
 
-          <Separator />
+              <Separator />
 
-          <CardContent className="min-h-0 flex-1 overflow-hidden p-0">
-            <MessageScroller className="size-full">
-              <MessageScrollerViewport>
-                <MessageScrollerContent className="gap-3 px-3 py-3 sm:gap-4 sm:px-4 sm:py-4 md:gap-5 md:px-5 md:py-5">
-                  {messages.map((msg) => (
-                    <MessageScrollerItem
-                      key={msg.id}
-                      messageId={String(msg.id)}
-                      scrollAnchor={msg.role === "user"}
-                    >
-                      <Message align={msg.role === "user" ? "end" : "start"}>
-                        <MessageAvatar>
-                          <Avatar className="size-7 border border-border sm:size-8">
-                            {msg.role === "user" ? (
-                              <>
-                                <AvatarImage
-                                  src="https://i.pravatar.cc/150?img=12"
-                                  alt="You"
-                                  className="grayscale"
-                                />
-                                <AvatarFallback className="text-xs font-medium">
-                                  JD
-                                </AvatarFallback>
-                              </>
-                            ) : (
-                              <AvatarFallback className="bg-primary text-primary-foreground">
-                                <RiSparkling2Fill
-                                  className="size-4"
-                                  aria-hidden="true"
-                                />
-                              </AvatarFallback>
-                            )}
-                          </Avatar>
-                        </MessageAvatar>
-                        <MessageContent>
-                          <Bubble
-                            variant={msg.role === "user" ? "default" : "muted"}
+              <CardContent className="min-h-0 flex-1 overflow-hidden p-0">
+                <MessageScroller className="size-full">
+                  <MessageScrollerViewport>
+                    <MessageScrollerContent className="gap-3 px-3 py-3 sm:gap-4 sm:px-4 sm:py-4 md:gap-5 md:px-5 md:py-5">
+                      {messages.map((msg) => (
+                        <MessageScrollerItem
+                          key={msg.id}
+                          messageId={String(msg.id)}
+                          scrollAnchor={msg.role === "user"}
+                        >
+                          <Message align={msg.role === "user" ? "end" : "start"}>
+                            <MessageAvatar>
+                              <Avatar className="size-7 border border-border sm:size-8">
+                                {msg.role === "user" ? (
+                                  <>
+                                    <AvatarImage
+                                      src="https://i.pravatar.cc/150?img=12"
+                                      alt="You"
+                                      className="grayscale"
+                                    />
+                                    <AvatarFallback className="text-xs font-medium">
+                                      JD
+                                    </AvatarFallback>
+                                  </>
+                                ) : (
+                                  <AvatarFallback className="bg-primary text-primary-foreground">
+                                    <RiSparkling2Fill
+                                      className="size-4"
+                                      aria-hidden="true"
+                                    />
+                                  </AvatarFallback>
+                                )}
+                              </Avatar>
+                            </MessageAvatar>
+                            <MessageContent>
+                              <Bubble
+                                variant={msg.role === "user" ? "default" : "muted"}
+                              >
+                                <BubbleContent className="text-xs whitespace-pre-line sm:text-sm">
+                                  {msg.content}
+                                </BubbleContent>
+                              </Bubble>
+                            </MessageContent>
+                          </Message>
+                        </MessageScrollerItem>
+                      ))}
+
+                      {isTyping && (
+                        <Marker role="status">
+                          <MarkerContent className="shimmer">
+                            Acme Copilot is typing...
+                          </MarkerContent>
+                        </Marker>
+                      )}
+                    </MessageScrollerContent>
+                  </MessageScrollerViewport>
+                  <MessageScrollerButton />
+                </MessageScroller>
+              </CardContent>
+
+              <CardFooter className="flex flex-col gap-2 px-3 py-3 sm:gap-3 sm:px-4 sm:py-3.5 md:px-5 md:py-4">
+                <form onSubmit={handleSubmit} className="w-full">
+                  <InputGroup className="has-disabled:bg-transparent has-disabled:opacity-100 dark:has-disabled:bg-transparent">
+                    <InputGroupAddon align="inline-start">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <InputGroupButton
+                            aria-label="Add files"
+                            type="button"
+                            size="icon-sm"
+                            variant="outline"
                           >
-                            <BubbleContent className="text-xs whitespace-pre-line sm:text-sm">
-                              {msg.content}
-                            </BubbleContent>
-                          </Bubble>
-                        </MessageContent>
-                      </Message>
-                    </MessageScrollerItem>
-                  ))}
-
-                  {isTyping && (
-                    <Marker role="status">
-                      <MarkerContent className="shimmer">
-                        Acme Copilot is typing...
-                      </MarkerContent>
-                    </Marker>
-                  )}
-                </MessageScrollerContent>
-              </MessageScrollerViewport>
-              <MessageScrollerButton />
-            </MessageScroller>
-          </CardContent>
-
-          <CardFooter className="flex flex-col gap-2 px-3 py-3 sm:gap-3 sm:px-4 sm:py-3.5 md:px-5 md:py-4">
-            <form onSubmit={handleSubmit} className="w-full">
-              <InputGroup>
-                <Textarea
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  rows={1}
-                  placeholder="Message Acme Copilot…"
-                  aria-label="Message Acme Copilot"
-                  className="max-h-28 min-h-12 resize-none border-0 bg-transparent px-2.5 py-2 text-xs shadow-none focus-visible:ring-0 sm:min-h-14 sm:px-3 sm:py-2.5 sm:text-sm"
-                />
-                <InputGroupAddon align="block-end" className="pt-1">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                            <PlusIcon />
+                          </InputGroupButton>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="start"
+                          side="top"
+                          className="w-40 sm:w-44"
+                        >
+                          <DropdownMenuItem>
+                            <PaperclipIcon />
+                            Add Photos & Files
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem>
+                            <ImageIcon />
+                            Create Image
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <TelescopeIcon />
+                            Deep Research
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <GlobeIcon />
+                            Web Search
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setTheme("light")}>
+                            <SunIcon />
+                            Light
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setTheme("dark")}>
+                            <MoonIcon />
+                            Dark
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </InputGroupAddon>
+                    <TextareaAutosize
+                      data-slot="input-group-control"
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      minRows={1}
+                      maxRows={6}
+                      placeholder="Message Acme Copilot…"
+                      aria-label="Message Acme Copilot"
+                      className="flex field-sizing-content min-h-16 w-full resize-none rounded-md bg-transparent px-3 py-2.5 text-base transition-[color,box-shadow] outline-none md:text-sm"
+                    />
+                    <InputGroupAddon align="inline-end">
                       <InputGroupButton
-                        aria-label="Add files"
-                        type="button"
+                        type="submit"
+                        variant="default"
                         size="icon-sm"
-                        variant="outline"
+                        disabled={!draft.trim() || isTyping}
+                        className="ml-auto"
+                        aria-label="Send message"
                       >
-                        <PlusIcon />
+                        <ArrowUpIcon />
                       </InputGroupButton>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="start"
-                      side="top"
-                      className="w-40 sm:w-44"
-                    >
-                      <DropdownMenuItem>
-                        <PaperclipIcon />
-                        Add Photos & Files
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem>
-                        <ImageIcon />
-                        Create Image
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <TelescopeIcon />
-                        Deep Research
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <GlobeIcon />
-                        Web Search
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setTheme("light")}>
-                        <SunIcon />
-                        Light
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setTheme("dark")}>
-                        <MoonIcon />
-                        Dark
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <InputGroupButton
-                    type="submit"
-                    variant="default"
-                    size="icon-sm"
-                    disabled={!draft.trim() || isTyping}
-                    className="ml-auto"
-                    aria-label="Send message"
-                  >
-                    <ArrowUpIcon />
-                  </InputGroupButton>
-                </InputGroupAddon>
-              </InputGroup>
-            </form>
-          </CardFooter>
-        </Card>
+                    </InputGroupAddon>
+                  </InputGroup>
+                </form>
+              </CardFooter>
+            </Card>
+          )}
+
+          <Button
+            type="button"
+            size="icon"
+            onClick={() => setIsOpen((prev) => !prev)}
+            aria-label={isOpen ? "Close chat widget" : "Open chat widget"}
+            className={cn(
+              "pointer-events-auto h-14 w-14 rounded-full shadow-lg",
+              "bg-primary text-primary-foreground hover:bg-primary/90"
+            )}
+          >
+            {isOpen ? (
+              <XIcon className="size-6" aria-hidden="true" />
+            ) : (
+              <RiSparkling2Fill className="size-6" aria-hidden="true" />
+            )}
+          </Button>
+        </div>
       </MessageScrollerProvider>
     </section>
   )
