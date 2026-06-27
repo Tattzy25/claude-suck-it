@@ -1,4 +1,2 @@
-- [ ] Set up Context7 MCP server configuration
-  - [ ] Add `blackbox_mcp_settings.json` with server name `github.com/upstash/context7-mcp`
-  - [ ] Verify MCP config file content
-  - [ ] Demonstrate capability using one Context7 tool
+- [x] Reduce header bottom spacing under "Online" by ~80% in `components/ai-chat-block.tsx`
+- [x] Verify no other layout sections are changed

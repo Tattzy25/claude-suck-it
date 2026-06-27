@@ -1,4 +1,4 @@
-import { Geist, Geist_Mono } from "next/font/google"
+import { Geist, Geist_Mono, Orbitron } from "next/font/google"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -14,6 +14,11 @@ const fontMono = Geist_Mono({
   variable: "--font-mono",
 })
 
+const fontOrbitron = Orbitron({
+  subsets: ["latin"],
+  variable: "--font-orbitron",
+})
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -23,7 +28,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${fontSans.variable} ${fontMono.variable} font-sans antialiased`}
+      className={`${fontSans.variable} ${fontMono.variable} ${fontOrbitron.variable} font-sans antialiased`}
     >
       <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>

@@ -140,21 +140,19 @@ export default function AiChatBlock() {
   return (
     <section className="flex min-h-svh w-full items-center justify-center bg-muted/30 px-2 py-3 text-foreground sm:px-4 sm:py-6 md:px-6 md:py-10 lg:py-16">
       <MessageScrollerProvider autoScroll defaultScrollPosition="end">
-        <Card className="flex h-[100svh] max-h-[100svh] w-full max-w-full flex-col overflow-hidden border border-border shadow-sm sm:h-[90svh] sm:max-h-[90svh] sm:max-w-2xl md:h-[85svh] md:max-h-[720px] lg:h-[80vh] lg:max-h-[760px]">
-          <CardHeader className="px-3 py-3 sm:px-4 sm:py-3.5 md:px-5 md:py-4">
-            <div className="flex items-center gap-3">
-              <span className="flex size-9 shrink-0 items-center justify-center bg-primary text-primary-foreground">
-                <RiSparkling2Fill className="size-5" aria-hidden="true" />
+        <Card className="flex h-[100svh] max-h-[100svh] w-full max-w-full flex-col gap-0 overflow-hidden border border-border px-0 pt-[10px] pb-0 shadow-sm sm:h-[90svh] sm:max-h-[90svh] sm:max-w-2xl md:h-[85svh] md:max-h-[720px] lg:h-[80vh] lg:max-h-[760px]">
+          <CardHeader className="px-3 pt-[0.6rem] pb-0 sm:px-4 sm:pt-[0.7rem] sm:pb-0 md:px-5 md:pt-[0.8rem] md:pb-0">
+            <div className="flex items-center gap-3 leading-none -translate-y-[5px]">
+              <span className="flex size-7 shrink-0 items-center justify-center overflow-visible pb-[1px] bg-primary text-primary-foreground">
+                <RiSparkling2Fill className="size-3.5 translate-y-[0.5px]" aria-hidden="true" />
               </span>
-              <div className="flex flex-col gap-0.5">
-                <span className="text-sm leading-none font-semibold tracking-tight">
-                  Acme Copilot
-                </span>
-                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span className="inline-block size-1.5 rounded-full bg-primary" />
-                  {isTyping ? "Typing…" : "Online"}
-                </span>
-              </div>
+              <span className="font-[var(--font-orbitron)] text-[16px] leading-none font-semibold tracking-tight">
+                Acme Copilot
+              </span>
+              <span className="ml-auto flex items-center gap-1 font-[var(--font-orbitron)] text-[16px] leading-none text-muted-foreground">
+                <span className="inline-block size-1.5 rounded-full bg-primary" />
+                {isTyping ? "Typing…" : "Online"}
+              </span>
             </div>
           </CardHeader>
 
