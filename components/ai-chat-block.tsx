@@ -6,8 +6,10 @@ import {
   ArrowUpIcon,
   GlobeIcon,
   ImageIcon,
+  MoonIcon,
   PaperclipIcon,
   PlusIcon,
+  SunIcon,
   TelescopeIcon,
 } from "lucide-react"
 
@@ -44,6 +46,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
+import { useTheme } from "next-themes"
 
 type MessageRole = "user" | "assistant"
 
@@ -87,6 +90,7 @@ const suggestions: string[] = [
 ]
 
 export default function AiChatBlock() {
+  const { setTheme } = useTheme()
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [draft, setDraft] = useState("")
   const [isTyping, setIsTyping] = useState(false)
@@ -263,6 +267,14 @@ export default function AiChatBlock() {
                       <DropdownMenuItem>
                         <GlobeIcon />
                         Web Search
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setTheme("light")}>
+                        <SunIcon />
+                        Light
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setTheme("dark")}>
+                        <MoonIcon />
+                        Dark
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

@@ -1,2 +1,0 @@
-- [x] Reduce header bottom spacing under "Online" by ~80% in `components/ai-chat-block.tsx`
-- [x] Verify no other layout sections are changed
