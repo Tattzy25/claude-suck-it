@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { RiSparkling2Fill } from "@remixicon/react"
 import {
   ArrowUpIcon,
+  CheckIcon,
   FileIcon,
   GlobeIcon,
   ImageIcon,
@@ -59,13 +60,20 @@ import { Separator } from "@/components/ui/separator"
 import TextareaAutosize from "react-textarea-autosize"
 import { cn } from "@/lib/utils"
 import { useTheme } from "next-themes"
+import { Image as ChatImage } from "@/components/image"
 
 type MessageRole = "user" | "assistant"
+
+type ChatPart =
+  | { type: "text"; text: string }
+  | { type: "image"; url: string; filename?: string }
+  | { type: "tool"; label: string; status?: string }
+  | { type: "approval"; id: string; label: string }
 
 interface ChatMessage {
   id: number
   role: MessageRole
-  content: string
+  parts: ChatPart[]
 }
 
 interface ComposerAttachment {
@@ -74,6 +82,131 @@ interface ComposerAttachment {
 }
 
 const initialMessages: ChatMessage[] = []
+
+function parseAssistantParts(data: any): ChatPart[] {
+  const parts: ChatPart[] = []
+
+  const output = Array.isArray(data?.output) ? data.output : []
+
+  for (const item of output) {
+    if (!item || typeof item !== "object") continue
+
+    if (item.type === "message" && Array.isArray(item.content)) {
+      for (const contentItem of item.content) {
+        if (!contentItem || typeof contentItem !== "object") continue
+
+        if (
+          contentItem.type === "output_text" &&
+          typeof contentItem.text === "string" &&
+          contentItem.text.trim()
+        ) {
+          parts.push({ type: "text", text: contentItem.text })
+        }
+
+        const imageUrl =
+          (typeof contentItem.image_url === "string" && contentItem.image_url) ||
+          (typeof contentItem.url === "string" && contentItem.url) ||
+          (typeof contentItem.image === "string" && contentItem.image)
+
+        if (
+          (contentItem.type === "output_image" ||
+            contentItem.type === "image" ||
+            contentItem.type === "image_url") &&
+          imageUrl
+        ) {
+          parts.push({
+            type: "image",
+            url: imageUrl,
+            filename:
+              typeof contentItem.filename === "string"
+                ? contentItem.filename
+                : undefined,
+          })
+        }
+      }
+    }
+
+    if (
+      item.type === "output_text" &&
+      typeof item.text === "string" &&
+      item.text.trim()
+    ) {
+      parts.push({ type: "text", text: item.text })
+    }
+
+    const itemImageUrl =
+      (typeof item.image_url === "string" && item.image_url) ||
+      (typeof item.url === "string" && item.url) ||
+      (typeof item.image === "string" && item.image)
+
+    if (
+      (item.type === "output_image" ||
+        item.type === "image" ||
+        item.type === "image_url") &&
+      itemImageUrl
+    ) {
+      parts.push({
+        type: "image",
+        url: itemImageUrl,
+        filename: typeof item.filename === "string" ? item.filename : undefined,
+      })
+    }
+
+    if (
+      item.type === "image_generation_call" ||
+      item.type === "web_search_call" ||
+      item.type === "file_search_call" ||
+      item.type === "mcp_call"
+    ) {
+      const status =
+        typeof item.status === "string"
+          ? item.status
+          : typeof item.state === "string"
+            ? item.state
+            : undefined
+
+      const label =
+        item.type === "image_generation_call"
+          ? "Generating image"
+          : item.type === "web_search_call"
+            ? "Searching web"
+            : item.type === "file_search_call"
+              ? "Searching knowledge"
+              : "Running MCP tool"
+
+      parts.push({ type: "tool", label, status })
+    }
+
+    if (item.type === "mcp_approval_request") {
+      const approvalId =
+        (typeof item.id === "string" && item.id) ||
+        (typeof item.approval_id === "string" && item.approval_id) ||
+        `approval-${Math.random().toString(36).slice(2, 10)}`
+
+      const label =
+        (typeof item.label === "string" && item.label) ||
+        (typeof item.title === "string" && item.title) ||
+        "Tool approval required"
+
+      parts.push({ type: "approval", id: approvalId, label })
+    }
+  }
+
+  if (parts.length === 0) {
+    const fallbackText =
+      (typeof data?.reply === "string" && data.reply.trim() && data.reply) ||
+      (typeof data?.output_text === "string" &&
+        data.output_text.trim() &&
+        data.output_text) ||
+      (typeof data?.text === "string" && data.text.trim() && data.text)
+
+    if (fallbackText) {
+      parts.push({ type: "text", text: fallbackText })
+    }
+  }
+
+  return parts
+}
 
 export default function AiChatBlock() {
   const { setTheme } = useTheme()
@@ -99,7 +232,7 @@ export default function AiChatBlock() {
     const userMessage: ChatMessage = {
       id: nextId.current++,
       role: "user",
-      content: trimmed || "Sent attachment",
+      parts: [{ type: "text", text: trimmed || "Sent attachment" }],
     }
     setMessages((prev) => [...prev, userMessage])
     setDraft("")
@@ -107,32 +240,98 @@ export default function AiChatBlock() {
     setIsTyping(true)
 
     try {
+      const firstImageAttachment = attachments.find((item) =>
+        item.file.type.startsWith("image/")
+      )
+
+      const imageUrls: string[] = []
+
+      if (firstImageAttachment) {
+        const formData = new FormData()
+        formData.append("file", firstImageAttachment.file)
+
+        let uploadResponse: Response
+        try {
+          uploadResponse = await fetch("/api/upload-image", {
+            method: "POST",
+            body: formData,
+          })
+        } catch {
+            throw new Error("Failed to reach image upload service.")
+        }
+
+        if (!uploadResponse.ok) {
+          const errorText = await uploadResponse.text().catch(() => "")
+          throw new Error(
+            `Image upload failed (${uploadResponse.status})${errorText ? `: ${errorText}` : ""}`
+          )
+        }
+
+        const uploadedRaw = await uploadResponse.text()
+
+        let uploadedUrl = uploadedRaw.trim()
+        try {
+          const parsed = JSON.parse(uploadedRaw)
+          if (typeof parsed === "string") {
+            uploadedUrl = parsed
+          } else if (typeof parsed?.url === "string") {
+            uploadedUrl = parsed.url
+          } else if (typeof parsed?.image_url === "string") {
+            uploadedUrl = parsed.image_url
+          } else if (typeof parsed?.image === "string") {
+            uploadedUrl = parsed.image
+          }
+        } catch {
+          // keep raw text value
+        }
+
+        imageUrls.push(uploadedUrl)
+      }
+
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: trimmed }),
+        body: JSON.stringify({
+          message: trimmed,
+          images: imageUrls,
+        }),
       })
 
-      const data = await response.json().catch(() => null)
-      const assistantContent =
-        (typeof data?.reply === "string" && data.reply) ||
-        (typeof data?.message === "string" && data.message) ||
-        (typeof data?.content === "string" && data.content) ||
-        "No response from server."
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(
+          typeof data?.reply === "string" && data.reply.trim()
+            ? data.reply
+            : "Chat request failed"
+        )
+      }
+
+      const payload = data?.response ?? data
+      const assistantParts = parseAssistantParts(payload)
+
+      if (assistantParts.length === 0) {
+        throw new Error(
+          typeof data?.reply === "string" && data.reply.trim()
+            ? data.reply
+            : "No assistant message parts returned"
+        )
+      }
 
       setMessages((prev) => [
         ...prev,
-        { id: nextId.current++, role: "assistant", content: assistantContent },
+        { id: nextId.current++, role: "assistant", parts: assistantParts },
       ])
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Chat request failed"
       setMessages((prev) => [
         ...prev,
         {
           id: nextId.current++,
           role: "assistant",
-          content: "Request failed. Please try again.",
+          parts: [{ type: "text", text: message }],
         },
       ])
     } finally {
@@ -190,11 +389,11 @@ export default function AiChatBlock() {
                     <RiSparkling2Fill className="size-3.5 translate-y-[0.5px]" aria-hidden="true" />
                   </span>
                   <span className="font-[var(--font-orbitron)] text-[16px] leading-none font-semibold tracking-tight">
-                    Acme Copilot
+                    TaTTTy
                   </span>
                   <span className="ml-auto flex items-center gap-1 font-[var(--font-orbitron)] text-[14px] leading-none text-muted-foreground">
                     <span className="inline-block size-1.5 rounded-full bg-primary" />
-                    {isTyping ? "Typing…" : "Online"}
+                    {isTyping ? "Responding…" : "Connected"}
                   </span>
                 </div>
               </CardHeader>
@@ -236,13 +435,89 @@ export default function AiChatBlock() {
                               </Avatar>
                             </MessageAvatar>
                             <MessageContent>
-                              <Bubble
-                                variant={msg.role === "user" ? "default" : "muted"}
-                              >
-                                <BubbleContent className="text-xs whitespace-pre-line sm:text-sm">
-                                  {msg.content}
-                                </BubbleContent>
-                              </Bubble>
+                                <Bubble
+                                  variant={msg.role === "user" ? "default" : "muted"}
+                                >
+                                  <BubbleContent className="space-y-2 text-xs whitespace-pre-line sm:text-sm">
+                                    {msg.parts.map((part, idx) => {
+                                      if (part.type === "text") {
+                                        return <p key={idx}>{part.text}</p>
+                                      }
+
+                                      if (part.type === "image") {
+                                        return (
+                                          <div key={idx} className="max-w-64">
+                                            <ChatImage.Root>
+                                              <ChatImage.Zoom
+                                                src={part.url}
+                                                alt={part.filename || "Generated image"}
+                                              >
+                                                <ChatImage.Preview
+                                                  src={part.url}
+                                                  alt={part.filename || "Generated image"}
+                                                />
+                                              </ChatImage.Zoom>
+                                              <ChatImage.Filename>
+                                                {part.filename}
+                                              </ChatImage.Filename>
+                                            </ChatImage.Root>
+                                          </div>
+                                        )
+                                      }
+
+                                      if (part.type === "tool") {
+                                        return (
+                                          <div
+                                            key={idx}
+                                            className="flex items-center gap-2 rounded-md border border-border/60 bg-background/60 px-2 py-1 text-[11px] sm:text-xs"
+                                          >
+                                            <span className="inline-block size-1.5 rounded-full bg-primary" />
+                                            <span>{part.label}</span>
+                                            {part.status && (
+                                              <span className="text-muted-foreground">
+                                                ({part.status})
+                                              </span>
+                                            )}
+                                          </div>
+                                        )
+                                      }
+
+                                      if (part.type === "approval") {
+                                        return (
+                                          <div
+                                            key={idx}
+                                            className="space-y-2 rounded-md border border-border bg-background/80 p-2"
+                                          >
+                                            <p className="text-[11px] sm:text-xs">
+                                              {part.label}
+                                            </p>
+                                            <div className="flex items-center gap-2">
+                                              <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="default"
+                                                className="h-7 px-2 text-[11px]"
+                                              >
+                                                <CheckIcon className="mr-1 size-3" />
+                                                Approve
+                                              </Button>
+                                              <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-7 px-2 text-[11px]"
+                                              >
+                                                Deny
+                                              </Button>
+                                            </div>
+                                          </div>
+                                        )
+                                      }
+
+                                      return null
+                                    })}
+                                  </BubbleContent>
+                                </Bubble>
                             </MessageContent>
                           </Message>
                         </MessageScrollerItem>
@@ -251,7 +526,7 @@ export default function AiChatBlock() {
                       {isTyping && (
                         <Marker role="status">
                           <MarkerContent className="shimmer">
-                            Agent Gold is typing...
+                            Agent Sold is typing...
                           </MarkerContent>
                         </Marker>
                       )}
@@ -267,6 +542,7 @@ export default function AiChatBlock() {
                     ref={fileInputRef}
                     type="file"
                     multiple
+                    accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
                     className="hidden"
                     onChange={handleFilesSelected}
                     aria-label="Attach files"
@@ -317,9 +593,7 @@ export default function AiChatBlock() {
                           side="top"
                           className="w-40 sm:w-44"
                         >
-                          <DropdownMenuItem
-                            onClick={() => fileInputRef.current?.click()}
-                          >
+                          <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
                             <PaperclipIcon />
                             Add Photos & Files
                           </DropdownMenuItem>
@@ -347,7 +621,7 @@ export default function AiChatBlock() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </InputGroupAddon>
-                    <TextareaAutosize
+                     <TextareaAutosize
                       data-slot="input-group-control"
                       value={draft}
                       onChange={(e) => setDraft(e.target.value)}
