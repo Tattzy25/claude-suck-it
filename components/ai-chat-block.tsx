@@ -73,32 +73,7 @@ interface ComposerAttachment {
   file: File
 }
 
-const initialMessages: ChatMessage[] = [
-  {
-    id: 1,
-    role: "assistant",
-    content:
-      "Hi, I'm Acme Copilot. Ask me to draft, summarise, or plan something and I'll get to work.",
-  },
-  {
-    id: 2,
-    role: "user",
-    content: "What can you help me with on the Acme dashboard?",
-  },
-  {
-    id: 3,
-    role: "assistant",
-    content:
-      "Plenty. I can surface revenue trends, draft customer replies, generate release notes, and explain any metric you click on. Want me to start with a quick weekly summary?",
-  },
-]
-
-const cannedReplies: string[] = [
-  "Got it. Here's a quick take: your weekly active users are up 12% and trial conversion held steady at 4.8%. Want me to break this down by plan tier?",
-  "Done. I drafted three subject-line variants and a 90-word body for the launch email, each tuned for a slightly different audience. I can refine the tone if you'd like.",
-  "Sure thing. The top driver this week was the Acme Pro upgrade flow (+$18.4k). I can pull the full attribution report whenever you're ready.",
-  "Here's a starting outline with five sections and suggested owners. Let me know which part you'd like me to expand first.",
-]
+const initialMessages: ChatMessage[] = []
 
 export default function AiChatBlock() {
   const { setTheme } = useTheme()
@@ -107,8 +82,7 @@ export default function AiChatBlock() {
   const [draft, setDraft] = useState("")
   const [isTyping, setIsTyping] = useState(false)
   const [attachments, setAttachments] = useState<ComposerAttachment[]>([])
-  const replyIndex = useRef(0)
-  const nextId = useRef(initialMessages.length + 1)
+  const nextId = useRef(1)
   const nextAttachmentId = useRef(1)
   const replyTimers = useRef<ReturnType<typeof setTimeout>[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -118,7 +92,7 @@ export default function AiChatBlock() {
     return () => timers.forEach(clearTimeout)
   }, [])
 
-  function send(text: string) {
+  async function send(text: string) {
     const trimmed = text.trim()
     if (isTyping || (!trimmed && attachments.length === 0)) return
 
@@ -132,17 +106,38 @@ export default function AiChatBlock() {
     setAttachments([])
     setIsTyping(true)
 
-    const reply = cannedReplies[replyIndex.current % cannedReplies.length]
-    replyIndex.current += 1
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: trimmed }),
+      })
 
-    const timer = setTimeout(() => {
+      const data = await response.json().catch(() => null)
+      const assistantContent =
+        (typeof data?.reply === "string" && data.reply) ||
+        (typeof data?.message === "string" && data.message) ||
+        (typeof data?.content === "string" && data.content) ||
+        "No response from server."
+
       setMessages((prev) => [
         ...prev,
-        { id: nextId.current++, role: "assistant", content: reply },
+        { id: nextId.current++, role: "assistant", content: assistantContent },
       ])
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: nextId.current++,
+          role: "assistant",
+          content: "Request failed. Please try again.",
+        },
+      ])
+    } finally {
       setIsTyping(false)
-    }, 1400)
-    replyTimers.current.push(timer)
+    }
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -256,7 +251,7 @@ export default function AiChatBlock() {
                       {isTyping && (
                         <Marker role="status">
                           <MarkerContent className="shimmer">
-                            Acme Copilot is typing...
+                            Agent Gold is typing...
                           </MarkerContent>
                         </Marker>
                       )}
@@ -359,8 +354,8 @@ export default function AiChatBlock() {
                       onKeyDown={handleKeyDown}
                       minRows={1}
                       maxRows={6}
-                      placeholder="Message Acme Copilot…"
-                      aria-label="Message Acme Copilot"
+                      placeholder="Type a message…"
+                      aria-label="Type a message"
                       className="flex field-sizing-content min-h-16 w-full resize-none rounded-md bg-transparent px-3 py-2.5 text-base transition-[color,box-shadow] outline-none md:text-sm"
                     />
                     <InputGroupAddon align="inline-end">
