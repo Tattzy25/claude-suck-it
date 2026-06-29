@@ -6,13 +6,10 @@ import {
   ArrowUpIcon,
   CheckIcon,
   FileIcon,
-  GlobeIcon,
-  ImageIcon,
   MoonIcon,
   PaperclipIcon,
   PlusIcon,
   SunIcon,
-  TelescopeIcon,
   XIcon,
 } from "lucide-react"
 
@@ -61,6 +58,8 @@ import TextareaAutosize from "react-textarea-autosize"
 import { useTheme } from "next-themes"
 import { Image as ChatImage } from "@/components/image"
 import { cn } from "@/lib/utils"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 type MessageRole = "user" | "assistant"
 
@@ -83,8 +82,53 @@ interface ComposerAttachment {
 
 const initialMessages: ChatMessage[] = []
 
+function extractMediaImages(value: unknown, depth = 0): string[] {
+  if (depth > 12 || value == null) return []
+
+  let parsed = value
+  if (typeof parsed === "string") {
+    try {
+      parsed = JSON.parse(parsed)
+    } catch {
+      return []
+    }
+  }
+
+  if (Array.isArray(parsed)) {
+    return parsed.flatMap((entry) => extractMediaImages(entry, depth + 1))
+  }
+
+  if (typeof parsed === "object" && parsed !== null) {
+    const obj = parsed as Record<string, unknown>
+    const urls: string[] = []
+
+    if (Array.isArray(obj.media)) {
+      for (const m of obj.media) {
+        if (
+          m &&
+          typeof m === "object" &&
+          (m as Record<string, unknown>).type === "image" &&
+          typeof (m as Record<string, unknown>).url === "string"
+        ) {
+          urls.push((m as Record<string, unknown>).url as string)
+        }
+      }
+    }
+
+    for (const key of Object.keys(obj)) {
+      if (key === "media") continue
+      urls.push(...extractMediaImages(obj[key], depth + 1))
+    }
+
+    return urls
+  }
+
+  return []
+}
+
 function parseAssistantParts(data: any): ChatPart[] {
   const parts: ChatPart[] = []
+  const seenImageUrls = new Set<string>()
 
   const output = Array.isArray(data?.output) ? data.output : []
 
@@ -175,6 +219,14 @@ function parseAssistantParts(data: any): ChatPart[] {
               : "Running MCP tool"
 
       parts.push({ type: "tool", label, status })
+
+      if (item.type === "mcp_call" && typeof item.output === "string") {
+        for (const url of extractMediaImages(item.output)) {
+          if (seenImageUrls.has(url)) continue
+          seenImageUrls.add(url)
+          parts.push({ type: "image", url })
+        }
+      }
     }
 
     if (item.type === "mcp_approval_request") {
@@ -441,7 +493,27 @@ export default function AiChatBlock() {
                                   <BubbleContent className="space-y-2 text-xs whitespace-pre-line sm:text-sm">
                                     {msg.parts.map((part, idx) => {
                                       if (part.type === "text") {
-                                        return <p key={idx}>{part.text}</p>
+                                        return (
+                                          <div
+                                            key={idx}
+                                            className="prose prose-sm dark:prose-invert max-w-none [&>:first-child]:mt-0 [&>:last-child]:mb-0"
+                                          >
+                                            <ReactMarkdown
+                                              remarkPlugins={[remarkGfm]}
+                                              components={{
+                                                a: ({ ...props }) => (
+                                                  <a
+                                                    {...props}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                  />
+                                                ),
+                                              }}
+                                            >
+                                              {part.text}
+                                            </ReactMarkdown>
+                                          </div>
+                                        )
                                       }
 
                                       if (part.type === "image") {
@@ -598,18 +670,6 @@ export default function AiChatBlock() {
                             Add Photos & Files
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem>
-                            <ImageIcon />
-                            Create Image
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <TelescopeIcon />
-                            Deep Research
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <GlobeIcon />
-                            Web Search
-                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => setTheme("light")}>
                             <SunIcon />
                             Light
