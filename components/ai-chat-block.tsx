@@ -58,9 +58,9 @@ import {
 } from "@/components/ui/message-scroller"
 import { Separator } from "@/components/ui/separator"
 import TextareaAutosize from "react-textarea-autosize"
-import { cn } from "@/lib/utils"
 import { useTheme } from "next-themes"
 import { Image as ChatImage } from "@/components/image"
+import { cn } from "@/lib/utils"
 
 type MessageRole = "user" | "assistant"
 
